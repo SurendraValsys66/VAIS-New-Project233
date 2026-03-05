@@ -19,6 +19,12 @@ import {
   Download,
   ExternalLink,
   ChevronDown,
+  Eye,
+  Network,
+  Zap,
+  MapPinIcon,
+  Newspaper,
+  Webhook,
 } from "lucide-react";
 
 interface Prospect {
@@ -71,15 +77,15 @@ const CompanyDetail: React.FC = () => {
     revenue: "$50-100 Million",
   };
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "overview", label: "Overview" },
-    { id: "employees", label: "Employees" },
-    { id: "org-chart", label: "Org Chart" },
-    { id: "technologies", label: "Technologies" },
-    { id: "insights", label: "Insights" },
-    { id: "locations", label: "Locations & Hierarchy" },
-    { id: "news", label: "News" },
-    { id: "webhooks", label: "Webhooks" },
+  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: "overview", label: "Overview", icon: <Eye className="w-4 h-4" /> },
+    { id: "employees", label: "Employees", icon: <Users className="w-4 h-4" /> },
+    { id: "org-chart", label: "Org Chart", icon: <Network className="w-4 h-4" /> },
+    { id: "technologies", label: "Technologies", icon: <Globe className="w-4 h-4" /> },
+    { id: "insights", label: "Insights", icon: <Zap className="w-4 h-4" /> },
+    { id: "locations", label: "Locations & Hierarchy", icon: <MapPin className="w-4 h-4" /> },
+    { id: "news", label: "News", icon: <Newspaper className="w-4 h-4" /> },
+    { id: "webhooks", label: "Webhooks", icon: <Webhook className="w-4 h-4" /> },
   ];
 
   return (
@@ -157,20 +163,21 @@ const CompanyDetail: React.FC = () => {
           </div>
 
           {/* Tabs */}
-          <div className="px-6 overflow-x-auto border-b">
-            <div className="flex gap-0">
+          <div className="border-b">
+            <div className="flex gap-0 px-6">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition",
+                    "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition",
                     activeTab === tab.id
                       ? "border-blue-600 text-blue-600"
                       : "border-transparent text-gray-600 hover:text-gray-900"
                   )}
                 >
-                  {tab.label}
+                  {tab.icon}
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
