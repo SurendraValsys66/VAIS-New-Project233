@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Mail,
   Phone,
@@ -130,6 +131,12 @@ export const QuickViewPanel: React.FC<QuickViewPanelProps> = ({
   onMoreOptions,
   maskEmail = defaultMaskEmail,
 }) => {
+  const navigate = useNavigate();
+
+  const handleExternalLink = () => {
+    navigate(`/company/${prospect.id}`);
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
@@ -140,7 +147,7 @@ export const QuickViewPanel: React.FC<QuickViewPanelProps> = ({
             variant="ghost"
             size="sm"
             className="h-5 w-5 p-0"
-            onClick={onMoreOptions}
+            onClick={handleExternalLink}
           >
             <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
           </Button>
