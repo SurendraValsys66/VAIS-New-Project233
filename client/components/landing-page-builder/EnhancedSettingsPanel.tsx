@@ -1094,9 +1094,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                     label="⬆"
                     fullLabel="Padding Top"
                     value={
-                      typeof props["paddingTop"] === "string" &&
-                      (props["paddingTop"] as string).includes("%")
-                        ? (props["paddingTop"] as string).replace("%", "")
+                      typeof props["paddingTop"] === "string"
+                        ? (props["paddingTop"] as string).replace(/[%px]/g, "")
                         : props["paddingTop"] || "0"
                     }
                     unit={
@@ -1135,9 +1134,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                       label="⬅"
                       fullLabel="Padding Left"
                       value={
-                        typeof props["paddingLeft"] === "string" &&
-                        (props["paddingLeft"] as string).includes("%")
-                          ? (props["paddingLeft"] as string).replace("%", "")
+                        typeof props["paddingLeft"] === "string"
+                          ? (props["paddingLeft"] as string).replace(/[%px]/g, "")
                           : props["paddingLeft"] || "0"
                       }
                       unit={
@@ -1173,9 +1171,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                       label="➡"
                       fullLabel="Padding Right"
                       value={
-                        typeof props["paddingRight"] === "string" &&
-                        (props["paddingRight"] as string).includes("%")
-                          ? (props["paddingRight"] as string).replace("%", "")
+                        typeof props["paddingRight"] === "string"
+                          ? (props["paddingRight"] as string).replace(/[%px]/g, "")
                           : props["paddingRight"] || "0"
                       }
                       unit={
@@ -1214,9 +1211,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                     label="⬇"
                     fullLabel="Padding Bottom"
                     value={
-                      typeof props["paddingBottom"] === "string" &&
-                      (props["paddingBottom"] as string).includes("%")
-                        ? (props["paddingBottom"] as string).replace("%", "")
+                      typeof props["paddingBottom"] === "string"
+                        ? (props["paddingBottom"] as string).replace(/[%px]/g, "")
                         : props["paddingBottom"] || "0"
                     }
                     unit={
@@ -1274,9 +1270,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                     label="⬆"
                     fullLabel="Margin Top"
                     value={
-                      typeof props["marginTop"] === "string" &&
-                      (props["marginTop"] as string).includes("%")
-                        ? (props["marginTop"] as string).replace("%", "")
+                      typeof props["marginTop"] === "string"
+                        ? (props["marginTop"] as string).replace(/[%px]/g, "")
                         : props["marginTop"] || "0"
                     }
                     unit={
@@ -1315,9 +1310,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                       label="⬅"
                       fullLabel="Margin Left"
                       value={
-                        typeof props["marginLeft"] === "string" &&
-                        (props["marginLeft"] as string).includes("%")
-                          ? (props["marginLeft"] as string).replace("%", "")
+                        typeof props["marginLeft"] === "string"
+                          ? (props["marginLeft"] as string).replace(/[%px]/g, "")
                           : props["marginLeft"] || "0"
                       }
                       unit={
@@ -1353,9 +1347,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                       label="➡"
                       fullLabel="Margin Right"
                       value={
-                        typeof props["marginRight"] === "string" &&
-                        (props["marginRight"] as string).includes("%")
-                          ? (props["marginRight"] as string).replace("%", "")
+                        typeof props["marginRight"] === "string"
+                          ? (props["marginRight"] as string).replace(/[%px]/g, "")
                           : props["marginRight"] || "0"
                       }
                       unit={
@@ -1394,9 +1387,8 @@ export const EnhancedSettingsPanel: React.FC<EnhancedSettingsPanelProps> = ({
                     label="⬇"
                     fullLabel="Margin Bottom"
                     value={
-                      typeof props["marginBottom"] === "string" &&
-                      (props["marginBottom"] as string).includes("%")
-                        ? (props["marginBottom"] as string).replace("%", "")
+                      typeof props["marginBottom"] === "string"
+                        ? (props["marginBottom"] as string).replace(/[%px]/g, "")
                         : props["marginBottom"] || "0"
                     }
                     unit={
