@@ -193,35 +193,6 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
           </div>
         )}
 
-        {component.type === "column" && (
-          <div className="absolute bottom-0 left-0 right-0 opacity-0 group-hover:opacity-100 flex items-center justify-between bg-valasys-orange/5 px-2 py-1 z-20 text-[10px] font-bold text-valasys-orange pointer-events-none">
-            <div className="flex items-center gap-1 pointer-events-auto">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 bg-white border shadow-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUpdate(component.id, { width: Math.max(1, (component.width || 12) - 1) });
-                }}
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <span>{component.width}/12</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 bg-white border shadow-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUpdate(component.id, { width: Math.min(12, (component.width || 1) + 1) });
-                }}
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
 
         {content}
       </div>
