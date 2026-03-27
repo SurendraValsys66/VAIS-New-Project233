@@ -441,6 +441,7 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
       const buttonRef = React.useRef<HTMLButtonElement>(null);
       const isFocusedRef = React.useRef(false);
       const isDefaultTextRef = React.useRef(false);
+      const isFirstKeyPressRef = React.useRef(true);
 
       React.useEffect(() => {
         if (buttonRef.current && !isFocusedRef.current) {
@@ -448,6 +449,7 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
           if (buttonRef.current.textContent !== newText) {
             buttonRef.current.textContent = newText;
             isDefaultTextRef.current = !component.contentText;
+            isFirstKeyPressRef.current = true;
           }
         }
       }, [component.contentText]);
@@ -460,7 +462,8 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
             suppressContentEditableWarning
             onFocus={(e) => {
               isFocusedRef.current = true;
-              // Select all text when focusing (instead of clearing)
+              isFirstKeyPressRef.current = true;
+              // Select all text when focusing
               setTimeout(() => {
                 const selection = window.getSelection();
                 const range = document.createRange();
@@ -470,6 +473,11 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
               }, 0);
             }}
             onKeyDown={(e) => {
+              // Clear default text on first keystroke
+              if (isFirstKeyPressRef.current && isDefaultTextRef.current && e.key !== "Enter") {
+                e.currentTarget.textContent = "";
+                isFirstKeyPressRef.current = false;
+              }
               if (e.key === "Enter") {
                 e.preventDefault();
                 (e.currentTarget as any).blur();
