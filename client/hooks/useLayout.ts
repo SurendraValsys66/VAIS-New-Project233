@@ -13,6 +13,8 @@ export const useLayout = (initialData: BuilderComponent[] = []) => {
         children: type === "section" || type === "row" || type === "column" ? [] : undefined,
         width: type === "column" ? 6 : undefined,
         height: ["section", "image", "card", "hero", "feature-grid", "pricing", "testimonials", "faq", "video"].includes(type) ? 200 : undefined,
+        ...(type === "image" && { imageUrl: "" }),
+        ...(type === "video" && { videoUrl: "" }),
       };
 
       // Call the onAdded callback with the new component ID

@@ -555,25 +555,94 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
     case "video": {
       const videoSource = component.videoUrl || component.props?.videoUrl || component.props?.src;
 
+      console.log("Video component - source available:", !!videoSource, {
+        componentId: component.id,
+        videoUrlDefined: !!component.videoUrl,
+        sourceLength: videoSource?.length || 0,
+      });
+
+      // Helper function to extract YouTube video ID
+      const getYouTubeId = (url: string): string | null => {
+        if (!url) return null;
+        const patterns = [
+          /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+          /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+        ];
+        for (const pattern of patterns) {
+          const match = url.match(pattern);
+          if (match) return match[1];
+        }
+        return null;
+      };
+
+      // Helper function to extract Vimeo video ID
+      const getVimeoId = (url: string): string | null => {
+        if (!url) return null;
+        const match = url.match(/(?:vimeo\.com\/|video\/)(\d+)/);
+        return match ? match[1] : null;
+      };
+
+      // Determine video MIME type for direct files
+      const getVideoType = (src: string) => {
+        if (!src) return "video/mp4";
+        if (src.startsWith("data:")) {
+          const match = src.match(/data:([^;]+)/);
+          return match ? match[1] : "video/mp4";
+        }
+        if (src.endsWith(".webm")) return "video/webm";
+        if (src.endsWith(".ogg")) return "video/ogg";
+        if (src.endsWith(".mov")) return "video/quicktime";
+        return "video/mp4";
+      };
+
+      const isValidVideoSource = videoSource && typeof videoSource === "string" && videoSource.trim().length > 0;
+      const youtubeId = isValidVideoSource ? getYouTubeId(videoSource) : null;
+      const vimeoId = isValidVideoSource ? getVimeoId(videoSource) : null;
+
+      console.log("Video detection:", { isValidVideoSource, youtubeId, vimeoId, sourceType: youtubeId ? "youtube" : vimeoId ? "vimeo" : videoSource?.startsWith("data:") ? "data-url" : "direct" });
+
       return wrapWithControls(
         <div className="p-4 h-full" style={getComponentStyles()}>
-          {videoSource ? (
+          {isValidVideoSource ? (
             <div className="h-full aspect-video overflow-hidden rounded-2xl bg-black shadow-xl">
-              <video
-                className="h-full w-full object-contain"
-                controls
-                playsInline
-                preload="metadata"
-              >
-                <source src={videoSource} />
-                Your browser does not support the video tag.
-              </video>
+              {youtubeId ? (
+                <iframe
+                  key={youtubeId}
+                  className="h-full w-full"
+                  src={`https://www.youtube.com/embed/${youtubeId}`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : vimeoId ? (
+                <iframe
+                  key={vimeoId}
+                  className="h-full w-full"
+                  src={`https://player.vimeo.com/video/${vimeoId}`}
+                  title="Vimeo video player"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  key={`video-${component.id}`}
+                  className="h-full w-full object-contain"
+                  controls
+                  playsInline
+                  preload="metadata"
+                >
+                  <source src={videoSource} type={getVideoType(videoSource)} />
+                  Your browser does not support the video tag.
+                </video>
+              )}
             </div>
           ) : (
-            <div className="h-full aspect-video bg-black/90 flex items-center justify-center rounded-2xl shadow-xl overflow-hidden relative group/video">
-              <Play className="w-16 h-16 text-white opacity-50 group-hover/video:opacity-100 transition-opacity" />
-              <div className="absolute bottom-4 left-4 right-4 h-1 bg-white/20 rounded-full overflow-hidden">
-                <div className="w-1/3 h-full bg-valasys-orange" />
+            <div className="h-full aspect-video bg-black/90 flex items-center justify-center rounded-2xl shadow-xl overflow-hidden relative group/video cursor-pointer">
+              <div className="text-center">
+                <Play className="w-16 h-16 text-white opacity-50 group-hover/video:opacity-100 transition-opacity mb-3" />
+                <p className="text-sm text-white/70">Click to add video</p>
               </div>
             </div>
           )}

@@ -98,27 +98,91 @@ export const BuilderCanvas: React.FC<BuilderCanvasProps> = ({ onBack, templateId
   };
 
   const handleSaveVideoDialog = () => {
-    if (!selectedComponentId) return;
+    if (!selectedComponentId) {
+      toast({
+        title: "Error",
+        description: "No component selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const trimmedUrl = videoDialogUrl.trim();
+
+    if (!trimmedUrl) {
+      toast({
+        title: "Error",
+        description: "Please enter a video URL or upload a file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Saving video:", { selectedComponentId, trimmedUrl, length: trimmedUrl.length });
 
     updateComponent(selectedComponentId, {
-      videoUrl: videoDialogUrl.trim(),
+      videoUrl: trimmedUrl,
     });
+
+    toast({
+      title: "Success",
+      description: "Video added successfully",
+    });
+
     setIsVideoDialogOpen(false);
+    setVideoDialogUrl("");
     setVideoDialogFileName("");
   };
 
   const handleVideoFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ["video/mp4", "video/webm", "video/ogg", "video/quicktime", "application/octet-stream"];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a valid video file (MP4, WebM, OGG, MOV, etc.)",
+        variant: "destructive",
+      });
+      event.target.value = "";
+      return;
+    }
 
     const reader = new FileReader();
+
+    reader.onerror = () => {
+      toast({
+        title: "Error reading file",
+        description: "Failed to read the video file. Please try again.",
+        variant: "destructive",
+      });
+      event.target.value = "";
+    };
+
     reader.onload = (loadEvent) => {
       const result = loadEvent.target?.result;
       if (typeof result === "string") {
+        console.log("File loaded as data URL, size:", result.length);
         setVideoDialogUrl(result);
         setVideoDialogFileName(file.name);
+        toast({
+          title: "File loaded",
+          description: `${file.name} ready to add`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to convert file",
+          variant: "destructive",
+        });
       }
     };
+
     reader.readAsDataURL(file);
     event.target.value = "";
   };
@@ -445,6 +509,7 @@ export const BuilderCanvas: React.FC<BuilderCanvasProps> = ({ onBack, templateId
               variant="outline"
               onClick={() => {
                 setIsVideoDialogOpen(false);
+                setVideoDialogUrl("");
                 setVideoDialogFileName("");
               }}
             >
