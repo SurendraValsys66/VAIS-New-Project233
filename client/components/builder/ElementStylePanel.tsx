@@ -1211,6 +1211,34 @@ export const ElementStylePanel: React.FC<ElementStylePanelProps> = ({
                 placeholder="auto"
                 property="height"
               />
+              {component.type === "hero" && component.selectedHeroElement === "paragraph" && (
+                <>
+                  <div className="flex gap-2 items-center">
+                    <label className="text-xs text-gray-600 min-w-16">Width</label>
+                    <Input
+                      type="number"
+                      value={styles.paragraphWidth}
+                      onChange={(e) => handleStyleChange("paragraphWidth" as any, e.target.value)}
+                      min={0}
+                      max={100}
+                      placeholder="auto"
+                      className="flex-1 text-xs h-8"
+                    />
+                    <span className="text-xs text-gray-500">%</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <label className="text-xs text-gray-600 min-w-16">Font Size</label>
+                    <Input
+                      type="number"
+                      value={styles.paragraphFontSize}
+                      onChange={(e) => handleStyleChange("paragraphFontSize" as any, e.target.value)}
+                      placeholder="1.125"
+                      className="flex-1 text-xs h-8"
+                    />
+                    <span className="text-xs text-gray-500">rem</span>
+                  </div>
+                </>
+              )}
               {component.type !== "hero" && (
                 <SizingInput
                   label="Font Size"
@@ -1223,7 +1251,7 @@ export const ElementStylePanel: React.FC<ElementStylePanelProps> = ({
                 />
               )}
 
-              {component.type === "hero" && component.selectedHeroElement && (
+              {component.type === "hero" && component.selectedHeroElement && component.selectedHeroElement !== "paragraph" && (
                 <div className="pt-2 border-t border-gray-200 space-y-4">
                   <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Edit {component.selectedHeroElement.charAt(0).toUpperCase() + component.selectedHeroElement.slice(1)}
@@ -1280,35 +1308,6 @@ export const ElementStylePanel: React.FC<ElementStylePanelProps> = ({
                           value={styles.headingFontSize}
                           onChange={(e) => handleStyleChange("headingFontSize" as any, e.target.value)}
                           placeholder="3.75"
-                          className="flex-1 text-xs h-8"
-                        />
-                        <span className="text-xs text-gray-500">rem</span>
-                      </div>
-                    </>
-                  )}
-
-                  {component.selectedHeroElement === "paragraph" && (
-                    <>
-                      <div className="flex gap-2 items-center">
-                        <label className="text-xs text-gray-600 min-w-16">Width</label>
-                        <Input
-                          type="number"
-                          value={styles.paragraphWidth}
-                          onChange={(e) => handleStyleChange("paragraphWidth" as any, e.target.value)}
-                          min={0}
-                          max={100}
-                          placeholder="auto"
-                          className="flex-1 text-xs h-8"
-                        />
-                        <span className="text-xs text-gray-500">%</span>
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <label className="text-xs text-gray-600 min-w-16">Font Size</label>
-                        <Input
-                          type="number"
-                          value={styles.paragraphFontSize}
-                          onChange={(e) => handleStyleChange("paragraphFontSize" as any, e.target.value)}
-                          placeholder="1.125"
                           className="flex-1 text-xs h-8"
                         />
                         <span className="text-xs text-gray-500">rem</span>
