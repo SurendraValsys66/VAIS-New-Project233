@@ -19,6 +19,7 @@ interface HeroElement {
   type: "badge" | "heading" | "paragraph" | "buttons";
   label: string;
   content: string;
+  instanceId: string; // Unique identifier for each instance
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -28,47 +29,71 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onDuplicate,
   onSelect,
 }) => {
-  const [selectedElementId, setSelectedElementId] = React.useState<string | null>(
-    component.selectedHeroElement || null
-  );
+  const [selectedElementId, setSelectedElementId] = React.useState<string | null>(null);
   const [hoveredElementId, setHoveredElementId] = React.useState<string | null>(null);
   const [editingElementId, setEditingElementId] = React.useState<string | null>(null);
-  const [clipboardData, setClipboardData] = React.useState<{ elementId: string; content: string } | null>(null);
 
-  // Sync selectedHeroElement from component prop
-  React.useEffect(() => {
-    if (component.selectedHeroElement) {
-      setSelectedElementId(component.selectedHeroElement);
+  // Initialize hero elements with instance IDs
+  const initializeElements = (): HeroElement[] => {
+    const elements: HeroElement[] = [];
+
+    // Badges (can have multiple)
+    const badges = component.heroBadges || [
+      { instanceId: "badge-0", content: component.heroBadgeText || "✨ New Release" }
+    ];
+    badges.forEach(badge => {
+      elements.push({
+        id: badge.instanceId,
+        instanceId: badge.instanceId,
+        type: "badge",
+        label: "Badge",
+        content: badge.content || "✨ New Release",
+      });
+    });
+
+    // Heading
+    if (component.heroHeadingText || !component.heroBadges) {
+      elements.push({
+        id: "heading-0",
+        instanceId: "heading-0",
+        type: "heading",
+        label: "Heading",
+        content: component.heroHeadingText || "Build your vision faster than ever.",
+      });
     }
-  }, [component.selectedHeroElement]);
 
-  // Define hero elements
-  const heroElements: HeroElement[] = [
-    {
-      id: "badge",
-      type: "badge",
-      label: "Badge",
-      content: component.heroBadgeText || "✨ New Release",
-    },
-    {
-      id: "heading",
-      type: "heading",
-      label: "Heading",
-      content: component.heroHeadingText || "Build your vision faster than ever.",
-    },
-    {
-      id: "paragraph",
-      type: "paragraph",
-      label: "Paragraph",
-      content: component.heroDescriptionText || "The world's most advanced landing page builder. Drag, drop, and launch in minutes, not days.",
-    },
-    {
-      id: "buttons",
-      type: "buttons",
-      label: "Buttons",
-      content: "CTA Buttons",
-    },
-  ];
+    // Paragraph
+    if (component.heroDescriptionText || !component.heroBadges) {
+      elements.push({
+        id: "paragraph-0",
+        instanceId: "paragraph-0",
+        type: "paragraph",
+        label: "Paragraph",
+        content: component.heroDescriptionText || "The world's most advanced landing page builder. Drag, drop, and launch in minutes, not days.",
+      });
+    }
+
+    // Buttons
+    if (component.heroPrimaryButtonText || !component.heroBadges) {
+      elements.push({
+        id: "buttons-0",
+        instanceId: "buttons-0",
+        type: "buttons",
+        label: "Buttons",
+        content: "CTA Buttons",
+      });
+    }
+
+    return elements;
+  };
+
+  const [heroElements, setHeroElements] = React.useState<HeroElement[]>(initializeElements());
+
+  // Reinitialize elements when component changes
+  React.useEffect(() => {
+    setHeroElements(initializeElements());
+  }, [component.heroBadges, component.heroBadgeText, component.heroHeadingText, component.heroDescriptionText, component.heroPrimaryButtonText, component.heroSecondaryButtonText]);
+
 
   const getComponentStyles = () => {
     const styles: React.CSSProperties = {};
@@ -100,32 +125,47 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     return styles;
   };
 
-  const handleElementClick = (elementId: string, event?: React.MouseEvent) => {
+  const handleElementClick = (instanceId: string, event?: React.MouseEvent) => {
     if (event) {
       event.stopPropagation();
       event.preventDefault();
     }
-    const newSelectedId = selectedElementId === elementId ? null : elementId;
+    const newSelectedId = selectedElementId === instanceId ? null : instanceId;
     setSelectedElementId(newSelectedId);
-    // Update the component to track which element is selected
-    onUpdate(component.id, {
-      selectedHeroElement: (newSelectedId as "badge" | "heading" | "paragraph" | "buttons" | null) || null
-    });
     console.log("[HeroSection] Selected element:", newSelectedId);
   };
 
-  const handleElementUpdate = (elementId: string, content: string) => {
-    const updateMap: Record<string, keyof BuilderComponent> = {
-      badge: "heroBadgeText",
-      heading: "heroHeadingText",
-      paragraph: "heroDescriptionText",
-      primaryButton: "heroPrimaryButtonText",
-      secondaryButton: "heroSecondaryButtonText",
-    };
+  const handleElementUpdate = (instanceId: string, content: string) => {
+    const element = heroElements.find(el => el.instanceId === instanceId);
+    if (!element) return;
 
-    const key = updateMap[elementId];
-    if (key) {
-      onUpdate(component.id, { [key]: content });
+    // For primary/secondary buttons, use specific fields
+    if (instanceId === "primaryButton-0") {
+      onUpdate(component.id, { heroPrimaryButtonText: content });
+    } else if (instanceId === "secondaryButton-0") {
+      onUpdate(component.id, { heroSecondaryButtonText: content });
+    } else {
+      // For other elements, update through arrays
+      const elementType = element.type;
+      const fieldMap: Record<string, keyof BuilderComponent> = {
+        badge: "heroBadgeText",
+        heading: "heroHeadingText",
+        paragraph: "heroDescriptionText",
+      };
+
+      const fieldKey = fieldMap[elementType];
+      if (fieldKey) {
+        // Update the element in our local state
+        const updatedElements = heroElements.map(el =>
+          el.instanceId === instanceId ? { ...el, content } : el
+        );
+        setHeroElements(updatedElements);
+
+        // For the default element (0), update the component
+        if (instanceId.endsWith("-0")) {
+          onUpdate(component.id, { [fieldKey]: content });
+        }
+      }
     }
   };
 
@@ -133,80 +173,65 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     setEditingElementId(event.currentTarget.dataset.elementId || null);
   };
 
-  const handleCopyElement = (elementId: string) => {
-    const contentMap: Record<string, string> = {
-      badge: component.heroBadgeText || "✨ New Release",
-      heading: component.heroHeadingText || "Build your vision faster than ever.",
-      paragraph: component.heroDescriptionText || "The world's most advanced landing page builder. Drag, drop, and launch in minutes, not days.",
-      primaryButton: component.heroPrimaryButtonText || "Start Free Trial",
-      secondaryButton: component.heroSecondaryButtonText || "Watch Demo",
+  const handleCopyElement = (instanceId: string) => {
+    const element = heroElements.find(el => el.instanceId === instanceId);
+    if (!element) return;
+
+    // Create a duplicate element with a new instanceId
+    const newInstanceId = `${element.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const duplicatedElement: HeroElement = {
+      ...element,
+      id: newInstanceId,
+      instanceId: newInstanceId,
     };
 
-    const contentToCopy = contentMap[elementId] || "";
-    setClipboardData({ elementId, content: contentToCopy });
-    navigator.clipboard.writeText(contentToCopy).catch(err => {
-      console.error("[HeroSection] Failed to copy:", err);
-    });
+    // Add the duplicated element to the array
+    const updatedElements = [...heroElements];
+    const elementIndex = updatedElements.findIndex(el => el.instanceId === instanceId);
+    updatedElements.splice(elementIndex + 1, 0, duplicatedElement);
+
+    setHeroElements(updatedElements);
+    setSelectedElementId(newInstanceId);
   };
 
-  const handleDeleteElement = (elementId: string) => {
-    const defaultContent: Record<string, string> = {
-      badge: "✨ New Release",
-      heading: "Build your vision faster than ever.",
-      paragraph: "The world's most advanced landing page builder. Drag, drop, and launch in minutes, not days.",
-      primaryButton: "Start Free Trial",
-      secondaryButton: "Watch Demo",
-    };
+  const handleDeleteElement = (instanceId: string) => {
+    const element = heroElements.find(el => el.instanceId === instanceId);
+    if (!element) return;
 
-    const updateMap: Record<string, keyof BuilderComponent> = {
-      badge: "heroBadgeText",
-      heading: "heroHeadingText",
-      paragraph: "heroDescriptionText",
-      primaryButton: "heroPrimaryButtonText",
-      secondaryButton: "heroSecondaryButtonText",
-    };
+    // Can't delete if it's the only element of that type (for now, only support deleting duplicates)
+    const elementsOfSameType = heroElements.filter(el => el.type === element.type);
+    if (elementsOfSameType.length === 1) {
+      // For the default element, reset to default content instead
+      const defaultContent: Record<string, string> = {
+        badge: "✨ New Release",
+        heading: "Build your vision faster than ever.",
+        paragraph: "The world's most advanced landing page builder. Drag, drop, and launch in minutes, not days.",
+        buttons: "CTA Buttons",
+      };
 
-    const key = updateMap[elementId];
-    if (key && defaultContent[elementId]) {
-      onUpdate(component.id, { [key]: defaultContent[elementId] });
+      const updateMap: Record<string, keyof BuilderComponent> = {
+        badge: "heroBadgeText",
+        heading: "heroHeadingText",
+        paragraph: "heroDescriptionText",
+        buttons: "buttons",
+      };
+
+      const key = updateMap[element.type];
+      if (key && defaultContent[element.type]) {
+        onUpdate(component.id, { [key]: defaultContent[element.type] });
+      }
+      setSelectedElementId(null);
+    } else {
+      // Remove the element from the array
+      const updatedElements = heroElements.filter(el => el.instanceId !== instanceId);
+      setHeroElements(updatedElements);
       setSelectedElementId(null);
     }
   };
 
-  const handleAddElement = (elementId: string) => {
-    const updateMap: Record<string, keyof BuilderComponent> = {
-      badge: "heroBadgeText",
-      heading: "heroHeadingText",
-      paragraph: "heroDescriptionText",
-      primaryButton: "heroPrimaryButtonText",
-      secondaryButton: "heroSecondaryButtonText",
-    };
-
-    if (clipboardData) {
-      const sourceKey = updateMap[clipboardData.elementId];
-      const targetKey = updateMap[elementId];
-
-      if (sourceKey && targetKey) {
-        onUpdate(component.id, { [targetKey]: clipboardData.content });
-        setClipboardData(null);
-      }
-    } else {
-      const currentValue =
-        elementId === "badge" ? component.heroBadgeText :
-        elementId === "heading" ? component.heroHeadingText :
-        elementId === "paragraph" ? component.heroDescriptionText :
-        elementId === "primaryButton" ? component.heroPrimaryButtonText :
-        elementId === "secondaryButton" ? component.heroSecondaryButtonText :
-        "";
-
-      const key = updateMap[elementId];
-      if (key && currentValue) {
-        setClipboardData({ elementId, content: currentValue });
-        navigator.clipboard.writeText(currentValue).catch(err => {
-          console.error("[HeroSection] Failed to copy:", err);
-        });
-      }
-    }
+  const handleAddElement = (instanceId: string) => {
+    // Add is the same as copy
+    handleCopyElement(instanceId);
   };
 
   const headingTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -226,8 +251,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
 
   const renderElementContent = (element: HeroElement) => {
-    const isSelected = selectedElementId === element.id;
-    const isHovered = hoveredElementId === element.id;
+    const isSelected = selectedElementId === element.instanceId;
+    const isHovered = hoveredElementId === element.instanceId;
 
     // Get the actual value - in edit mode show the real value even if empty, in display mode show with fallback
     const getDisplayContent = (elementId: string): string => {
@@ -261,7 +286,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     );
 
     const renderControls = () => {
-      if (!isSelected || editingElementId === element.id) return null;
+      if (!isSelected || editingElementId === element.instanceId) return null;
 
       return (
         <div
@@ -274,10 +299,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleCopyElement(element.id);
+              handleCopyElement(element.instanceId);
             }}
             className="h-6 w-6 flex items-center justify-center hover:bg-valasys-orange/10 rounded transition-colors cursor-pointer"
-            title="Copy content"
+            title="Duplicate content"
           >
             <Copy className="h-3.5 w-3.5" />
           </button>
@@ -286,10 +311,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleAddElement(element.id);
+              handleAddElement(element.instanceId);
             }}
             className="h-6 w-6 flex items-center justify-center hover:bg-valasys-orange/10 rounded transition-colors cursor-pointer"
-            title={clipboardData ? "Paste content" : "Copy for pasting"}
+            title="Duplicate content"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
@@ -298,10 +323,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleDeleteElement(element.id);
+              handleDeleteElement(element.instanceId);
             }}
             className="h-6 w-6 flex items-center justify-center hover:bg-red-100 text-red-500 rounded transition-colors cursor-pointer"
-            title="Reset to default"
+            title="Delete or reset to default"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -309,7 +334,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       );
     };
 
-    const onMouseEnter = () => setHoveredElementId(element.id);
+    const onMouseEnter = () => setHoveredElementId(element.instanceId);
     const onMouseLeave = () => setHoveredElementId(null);
 
     switch (element.type) {
@@ -320,23 +345,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         const badgeTextAlign = component.badgeTextAlign || "center";
         return (
           <div
-            key={element.id}
+            key={element.instanceId}
             className={cn(
               containerClasses,
               "relative",
-              editingElementId && editingElementId !== element.id && "opacity-0 pointer-events-none transition-opacity"
+              editingElementId && editingElementId !== element.instanceId && "opacity-0 pointer-events-none transition-opacity"
             )}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            onClick={(e) => handleElementClick(element.id, e)}
+            onClick={(e) => handleElementClick(element.instanceId, e)}
             style={{ maxWidth: badgeWidth || "100%", textAlign: badgeTextAlign }}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-valasys-orange/10 text-valasys-orange font-bold uppercase tracking-wider" style={{ fontSize: badgeFontSize || "0.75rem" }}>
               {isSelected ? (
                 <Input
                   value={badgeContent}
-                  data-element-id={element.id}
-                  onChange={(e) => handleElementUpdate(element.id, e.target.value)}
+                  data-element-id={element.instanceId}
+                  onChange={(e) => handleElementUpdate(element.instanceId, e.target.value)}
                   onFocus={handleEditableFocus}
                   onBlur={() => setEditingElementId(null)}
                   onClick={(e) => e.stopPropagation()}
@@ -369,20 +394,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         const headingTextAlign = component.headingTextAlign || "center";
         return (
           <div
-            key={element.id}
+            key={element.instanceId}
             className={cn(containerClasses, "relative")}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            onClick={(e) => handleElementClick(element.id, e)}
+            onClick={(e) => handleElementClick(element.instanceId, e)}
             style={{ textAlign: headingTextAlign }}
           >
             {isSelected ? (
               <Textarea
                 ref={headingTextareaRef}
                 value={headingContent}
-                data-element-id={element.id}
+                data-element-id={element.instanceId}
                 onChange={(e) => {
-                  handleElementUpdate(element.id, e.target.value);
+                  handleElementUpdate(element.instanceId, e.target.value);
                   resizeTextarea(e.currentTarget);
                 }}
                 onFocus={handleEditableFocus}
@@ -423,20 +448,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         const paragraphTextAlign = component.paragraphTextAlign || "center";
         return (
           <div
-            key={element.id}
+            key={element.instanceId}
             className={cn(containerClasses, "relative w-full self-stretch")}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            onClick={(e) => handleElementClick(element.id, e)}
+            onClick={(e) => handleElementClick(element.instanceId, e)}
             style={{ textAlign: paragraphTextAlign }}
           >
             {isSelected ? (
               <Textarea
                 ref={paragraphTextareaRef}
                 value={paragraphContent}
-                data-element-id={element.id}
+                data-element-id={element.instanceId}
                 onChange={(e) => {
-                  handleElementUpdate(element.id, e.target.value);
+                  handleElementUpdate(element.instanceId, e.target.value);
                   resizeTextarea(e.currentTarget);
                 }}
                 onFocus={handleEditableFocus}
@@ -478,11 +503,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         const buttonTextAlign = component.buttonTextAlign || "center";
         return (
           <div
-            key={element.id}
+            key={element.instanceId}
             className={containerClasses}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            onClick={(e) => handleElementClick(element.id, e)}
+            onClick={(e) => handleElementClick(element.instanceId, e)}
             style={{ textAlign: buttonTextAlign }}
           >
             <div className="flex flex-wrap items-center justify-center gap-4 mt-4" style={{ maxWidth: buttonsWidth || "100%", fontSize: buttonFontSize || "1.125rem", textAlign: buttonTextAlign }}>
