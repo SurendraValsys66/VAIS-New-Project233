@@ -79,6 +79,8 @@ interface StyleState {
   featureGridHeading?: string;
   featureGridDescription?: string;
   featureGridImageUrl?: string;
+  featureGridPrimaryButtonText?: string;
+  featureGridSecondaryButtonText?: string;
 }
 
 interface SpacingState {
@@ -172,6 +174,8 @@ export const ElementStylePanel: React.FC<ElementStylePanelProps> = ({
     buttonTextAlign: "left",
     selectedHeroElement: "",
     featureGridImageUrl: "",
+    featureGridPrimaryButtonText: "",
+    featureGridSecondaryButtonText: "",
   });
 
   const [spacing, setSpacing] = React.useState<SpacingState>({
@@ -346,6 +350,8 @@ export const ElementStylePanel: React.FC<ElementStylePanelProps> = ({
         featureGridHeading: component.featureGridHeading || "",
         featureGridDescription: component.featureGridDescription || "",
         featureGridImageUrl: component.featureGridImageUrl || "",
+        featureGridPrimaryButtonText: component.featureGridPrimaryButtonText || "",
+        featureGridSecondaryButtonText: component.featureGridSecondaryButtonText || "",
       });
 
       // Initialize units from component
