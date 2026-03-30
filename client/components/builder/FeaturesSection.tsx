@@ -209,13 +209,22 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
             >
               {/* Icon */}
               <div
-                className="text-4xl mb-4 cursor-text"
+                className={cn(
+                  "text-4xl mb-4 cursor-text p-2 rounded transition-all",
+                  isSelected(feature.id)
+                    ? "border-2 border-dashed border-valasys-orange bg-valasys-orange/5"
+                    : isHovered(feature.id)
+                    ? "border-2 border-dashed border-valasys-orange bg-gray-50"
+                    : "border-2 border-transparent hover:border-2 hover:border-dashed hover:border-valasys-orange hover:bg-gray-50"
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (isSelected(feature.id)) {
                     setEditingFeatureId(feature.id);
                   }
                 }}
+                onMouseEnter={() => isSelected(feature.id) && setHoveredFeatureId(feature.id)}
+                onMouseLeave={() => setHoveredFeatureId(null)}
               >
                 {isSelected(feature.id) && editingFeatureId === feature.id ? (
                   <Input
@@ -248,8 +257,12 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
               ) : (
                 <h3
                   className={cn(
-                    "text-lg font-semibold text-gray-900 mb-2 cursor-text",
-                    isSelected(feature.id) && "opacity-70 hover:opacity-100"
+                    "text-lg font-semibold text-gray-900 mb-2 cursor-text p-2 rounded transition-all",
+                    isSelected(feature.id)
+                      ? "border-2 border-dashed border-valasys-orange bg-valasys-orange/5"
+                      : isHovered(feature.id)
+                      ? "border-2 border-dashed border-valasys-orange bg-gray-50"
+                      : "border-2 border-transparent hover:border-2 hover:border-dashed hover:border-valasys-orange hover:bg-gray-50"
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -257,6 +270,8 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
                       setEditingFeatureId(feature.id);
                     }
                   }}
+                  onMouseEnter={() => isSelected(feature.id) && setHoveredFeatureId(feature.id)}
+                  onMouseLeave={() => setHoveredFeatureId(null)}
                 >
                   {feature.title}
                 </h3>
@@ -278,8 +293,12 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
               ) : (
                 <p
                   className={cn(
-                    "text-sm text-gray-600 cursor-text",
-                    isSelected(feature.id) && "opacity-70 hover:opacity-100"
+                    "text-sm text-gray-600 cursor-text p-2 rounded transition-all",
+                    isSelected(feature.id)
+                      ? "border-2 border-dashed border-valasys-orange bg-valasys-orange/5"
+                      : isHovered(feature.id)
+                      ? "border-2 border-dashed border-valasys-orange bg-gray-50"
+                      : "border-2 border-transparent hover:border-2 hover:border-dashed hover:border-valasys-orange hover:bg-gray-50"
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -287,6 +306,8 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
                       setEditingFeatureId(feature.id);
                     }
                   }}
+                  onMouseEnter={() => isSelected(feature.id) && setHoveredFeatureId(feature.id)}
+                  onMouseLeave={() => setHoveredFeatureId(null)}
                 >
                   {feature.description}
                 </p>
