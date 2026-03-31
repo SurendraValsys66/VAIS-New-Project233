@@ -1,5 +1,18 @@
 import React, { useState, useCallback } from "react";
-import { BuilderComponent, ComponentType } from "@/types/builder";
+import { BuilderComponent, ComponentType, PricingTextBlock } from "@/types/builder";
+
+const createDefaultPricingTextBlocks = (): PricingTextBlock[] => [
+  {
+    id: `pricing-text-${Date.now()}-heading`,
+    type: "heading",
+    text: "Simple, transparent pricing",
+  },
+  {
+    id: `pricing-text-${Date.now()}-subheading`,
+    type: "subheading",
+    text: "Choose the plan that's right for you.",
+  },
+];
 
 export const useLayout = (initialData: BuilderComponent[] = []) => {
   const [layout, setLayout] = useState<BuilderComponent[]>(initialData);
@@ -36,6 +49,7 @@ export const useLayout = (initialData: BuilderComponent[] = []) => {
         ...(type === "pricing" && {
           pricingHeadingText: "Simple, transparent pricing",
           pricingSubheadingText: "Choose the plan that's right for you.",
+          pricingTextBlocks: createDefaultPricingTextBlocks(),
           pricingPlans: [
             {
               id: `pricing-${Date.now()}-1`,

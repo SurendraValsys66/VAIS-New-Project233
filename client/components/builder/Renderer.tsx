@@ -1,6 +1,6 @@
 import React from "react";
 import { useDrop, useDrag } from "react-dnd";
-import { BuilderComponent, DRAG_TYPES, ComponentType, PreviewDevice, PricingPlan } from "@/types/builder";
+import { BuilderComponent, DRAG_TYPES, ComponentType, PreviewDevice, PricingPlan, PricingTextBlock } from "@/types/builder";
 import { cn } from "@/lib/utils";
 import {
   Trash2,
@@ -93,6 +93,57 @@ const createPricingPlan = (index: number): PricingPlan => ({
   ],
   buttonText: `Choose Plan ${index}`,
 });
+
+type PricingTextType = PricingTextBlock["type"];
+
+const DEFAULT_PRICING_TEXT_BLOCKS: PricingTextBlock[] = [
+  {
+    id: "pricing-text-heading-default",
+    type: "heading",
+    text: "Simple, transparent pricing",
+  },
+  {
+    id: "pricing-text-subheading-default",
+    type: "subheading",
+    text: "Choose the plan that's right for you.",
+  },
+];
+
+const createPricingTextBlockId = (type: PricingTextType) =>
+  `pricing-text-${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+const normalizePricingTextBlocks = (
+  textBlocks?: PricingTextBlock[],
+  headingText?: string,
+  subheadingText?: string,
+): PricingTextBlock[] => {
+  if (textBlocks?.length) {
+    return textBlocks.map((textBlock) => ({
+      ...textBlock,
+      id: textBlock.id || createPricingTextBlockId(textBlock.type),
+    }));
+  }
+
+  const derivedBlocks: PricingTextBlock[] = [];
+
+  if (headingText !== "") {
+    derivedBlocks.push({
+      id: createPricingTextBlockId("heading"),
+      type: "heading",
+      text: headingText ?? DEFAULT_PRICING_TEXT_BLOCKS[0].text,
+    });
+  }
+
+  if (subheadingText !== "") {
+    derivedBlocks.push({
+      id: createPricingTextBlockId("subheading"),
+      type: "subheading",
+      text: subheadingText ?? DEFAULT_PRICING_TEXT_BLOCKS[1].text,
+    });
+  }
+
+  return derivedBlocks.length > 0 ? derivedBlocks : DEFAULT_PRICING_TEXT_BLOCKS;
+};
 
 const getPricingPlans = (plans?: PricingPlan[]) =>
   (plans?.length ? plans : DEFAULT_PRICING_PLANS).map((plan) => ({
@@ -319,12 +370,34 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
   const [selectedPricingField, setSelectedPricingField] = React.useState<string | null>(null);
   const [copiedPricingField, setCopiedPricingField] = React.useState<string | null>(null);
 
-  const pricingHeadingText = component.pricingHeadingText ?? "Simple, transparent pricing";
-  const pricingSubheadingText = component.pricingSubheadingText ?? "Choose the plan that's right for you.";
+  const pricingTextBlocks = React.useMemo(
+    () =>
+      normalizePricingTextBlocks(
+        component.pricingTextBlocks,
+        component.pricingHeadingText,
+        component.pricingSubheadingText,
+      ),
+    [
+      component.pricingHeadingText,
+      component.pricingSubheadingText,
+      component.pricingTextBlocks,
+    ],
+  );
   const pricingPlans = React.useMemo(
     () => ensureFeaturedPricingPlan(getPricingPlans(component.pricingPlans)),
     [component.pricingPlans],
   );
+
+  const updatePricingTextBlocks = (textBlocks: PricingTextBlock[]) => {
+    const headingBlock = textBlocks.find((textBlock) => textBlock.type === "heading");
+    const subheadingBlock = textBlocks.find((textBlock) => textBlock.type === "subheading");
+
+    onUpdate(component.id, {
+      pricingTextBlocks: textBlocks,
+      pricingHeadingText: headingBlock?.text ?? "",
+      pricingSubheadingText: subheadingBlock?.text ?? "",
+    });
+  };
 
   const updatePricingPlans = (plans: PricingPlan[]) => {
     onUpdate(component.id, {
@@ -437,10 +510,30 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
   const duplicatePricingValue = (value: string, fallback: string) =>
     `${value.trim() || fallback} Copy`;
 
-  const selectPricingText = (field: "heading" | "subheading") => {
+  const duplicatePricingTextBlock = (textBlockId: string) => {
+    const textBlockIndex = pricingTextBlocks.findIndex((textBlock) => textBlock.id === textBlockId);
+
+    if (textBlockIndex === -1) {
+      return;
+    }
+
+    const sourceTextBlock = pricingTextBlocks[textBlockIndex];
+    const copiedTextBlock: PricingTextBlock = {
+      ...sourceTextBlock,
+      id: createPricingTextBlockId(sourceTextBlock.type),
+    };
+    const updatedTextBlocks = [...pricingTextBlocks];
+
+    updatedTextBlocks.splice(textBlockIndex + 1, 0, copiedTextBlock);
+    updatePricingTextBlocks(updatedTextBlocks);
+    setSelectedPricingText(copiedTextBlock.id);
+    showPricingCopyFeedback(copiedTextBlock.id);
+  };
+
+  const selectPricingText = (textBlockId: string) => {
     setSelectedPricingField(null);
     setSelectedPricingText((currentText) =>
-      currentText === field ? null : field,
+      currentText === textBlockId ? null : textBlockId,
     );
     onSelect?.(component.id);
   };
@@ -455,38 +548,29 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
     onSelect?.(component.id);
   };
 
-  const handleDuplicatePricingText = (field: "heading" | "subheading") => {
-    if (field === "heading") {
-      onUpdate(component.id, {
-        pricingHeadingText: duplicatePricingValue(
-          pricingHeadingText,
-          "Simple, transparent pricing",
-        ),
-      });
-      return;
-    }
-
-    onUpdate(component.id, {
-      pricingSubheadingText: duplicatePricingValue(
-        pricingSubheadingText,
-        "Choose the plan that's right for you.",
+  const handlePricingTextChange = (textBlockId: string, value: string) => {
+    updatePricingTextBlocks(
+      pricingTextBlocks.map((textBlock) =>
+        textBlock.id === textBlockId
+          ? {
+              ...textBlock,
+              text: value,
+            }
+          : textBlock,
       ),
-    });
+    );
   };
 
-  const handleDeletePricingText = (field: "heading" | "subheading") => {
-    if (field === "heading") {
-      onUpdate(component.id, { pricingHeadingText: "" });
-      if (selectedPricingText === "heading") {
-        setSelectedPricingText(null);
-      }
-      return;
-    }
-
-    onUpdate(component.id, { pricingSubheadingText: "" });
-    if (selectedPricingText === "subheading") {
-      setSelectedPricingText(null);
-    }
+  const handleDeletePricingText = (textBlockId: string) => {
+    updatePricingTextBlocks(
+      pricingTextBlocks.filter((textBlock) => textBlock.id !== textBlockId),
+    );
+    setSelectedPricingText((currentText) =>
+      currentText === textBlockId ? null : currentText,
+    );
+    setHoveredPricingText((currentText) =>
+      currentText === textBlockId ? null : currentText,
+    );
   };
 
   const handleDuplicatePricingField = (
@@ -1103,110 +1187,95 @@ export const ComponentRenderer: React.FC<RendererProps> = ({
     case "pricing":
       return wrapWithControls(
         <div className="p-12 bg-white rounded-3xl border border-gray-100" style={getComponentStyles()}>
-          <div className="text-center mb-12">
-            <div
-              className="relative mx-auto mb-4 inline-block w-fit rounded-2xl px-4 py-2 transition-all"
-              onMouseEnter={() => setHoveredPricingText("heading")}
-              onMouseLeave={() =>
-                setHoveredPricingText((currentText) =>
-                  currentText === "heading" ? null : currentText,
-                )
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                selectPricingText("heading");
-              }}
-              style={{
-                display: "inline-block",
-                border:
-                  selectedPricingText === "heading"
-                    ? "2px solid #FF6A00"
-                    : hoveredPricingText === "heading"
-                      ? "2px dashed #FF6A00"
-                      : "2px solid transparent",
-              }}
-            >
-              {selectedPricingText === "heading" &&
-                renderPricingActionBar(
-                  "heading",
-                  () => copyPricingFieldText("heading", pricingHeadingText),
-                  () => handleDuplicatePricingText("heading"),
-                  () => handleDeletePricingText("heading"),
-                  "Copy heading text",
-                  "Duplicate heading text",
-                  "Delete heading text",
-                )}
-              <h2
-                className="text-2xl font-black focus:outline-none focus:ring-0"
-                contentEditable
-                suppressContentEditableWarning
-                onClick={(e) => e.stopPropagation()}
-                onFocus={() => {
-                  setSelectedPricingField(null);
-                  setSelectedPricingText("heading");
-                  onSelect?.(component.id);
-                }}
-                onInput={(e) =>
-                  onUpdate(component.id, {
-                    pricingHeadingText: e.currentTarget.textContent ?? "",
-                  })
-                }
-                style={{ outline: "none", boxShadow: "none", border: "none" }}
-              >
-                {pricingHeadingText}
-              </h2>
-            </div>
-            <div
-              className="relative mx-auto inline-block w-fit rounded-2xl px-4 py-2 transition-all"
-              onMouseEnter={() => setHoveredPricingText("subheading")}
-              onMouseLeave={() =>
-                setHoveredPricingText((currentText) =>
-                  currentText === "subheading" ? null : currentText,
-                )
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                selectPricingText("subheading");
-              }}
-              style={{
-                display: "inline-block",
-                border:
-                  selectedPricingText === "subheading"
-                    ? "2px solid #FF6A00"
-                    : hoveredPricingText === "subheading"
-                      ? "2px dashed #FF6A00"
-                      : "2px solid transparent",
-              }}
-            >
-              {selectedPricingText === "subheading" &&
-                renderPricingActionBar(
-                  "subheading",
-                  () => copyPricingFieldText("subheading", pricingSubheadingText),
-                  () => handleDuplicatePricingText("subheading"),
-                  () => handleDeletePricingText("subheading"),
-                  "Copy subheading text",
-                  "Duplicate subheading text",
-                  "Delete subheading text",
-                )}
-              <p
-                className="text-gray-500 focus:outline-none focus:ring-0"
-                contentEditable
-                suppressContentEditableWarning
-                onClick={(e) => e.stopPropagation()}
-                onFocus={() => {
-                  setSelectedPricingField(null);
-                  setSelectedPricingText("subheading");
-                  onSelect?.(component.id);
-                }}
-                onInput={(e) =>
-                  onUpdate(component.id, {
-                    pricingSubheadingText: e.currentTarget.textContent ?? "",
-                  })
-                }
-                style={{ outline: "none", boxShadow: "none", border: "none" }}
-              >
-                {pricingSubheadingText}
-              </p>
+          <div className="mb-12 text-center">
+            <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
+              {pricingTextBlocks.map((textBlock) => {
+                const isHeading = textBlock.type === "heading";
+                const isSelectedTextBlock = selectedPricingText === textBlock.id;
+                const isHoveredTextBlock = hoveredPricingText === textBlock.id;
+
+                return (
+                  <div
+                    key={textBlock.id}
+                    className={cn(
+                      "relative inline-block w-fit rounded-2xl px-4 py-2 transition-all",
+                      isHeading && "mb-1",
+                    )}
+                    onMouseEnter={() => setHoveredPricingText(textBlock.id)}
+                    onMouseLeave={() =>
+                      setHoveredPricingText((currentText) =>
+                        currentText === textBlock.id ? null : currentText,
+                      )
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selectPricingText(textBlock.id);
+                    }}
+                    style={{
+                      display: "inline-block",
+                      border: isSelectedTextBlock
+                        ? "2px solid #FF6A00"
+                        : isHoveredTextBlock
+                          ? "2px dashed #FF6A00"
+                          : "2px solid transparent",
+                    }}
+                  >
+                    {isSelectedTextBlock &&
+                      renderPricingActionBar(
+                        textBlock.id,
+                        () => duplicatePricingTextBlock(textBlock.id),
+                        () => duplicatePricingTextBlock(textBlock.id),
+                        () => handleDeletePricingText(textBlock.id),
+                        isHeading ? "Copy heading block" : "Copy description block",
+                        isHeading ? "Add heading block" : "Add description block",
+                        isHeading ? "Delete heading block" : "Delete description block",
+                      )}
+                    {isHeading ? (
+                      <h2
+                        className="text-2xl font-black focus:outline-none focus:ring-0"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onClick={(e) => e.stopPropagation()}
+                        onFocus={() => {
+                          setSelectedPricingField(null);
+                          setSelectedPricingText(textBlock.id);
+                          onSelect?.(component.id);
+                        }}
+                        onInput={(e) =>
+                          handlePricingTextChange(
+                            textBlock.id,
+                            e.currentTarget.textContent ?? "",
+                          )
+                        }
+                        style={{ outline: "none", boxShadow: "none", border: "none" }}
+                      >
+                        {textBlock.text}
+                      </h2>
+                    ) : (
+                      <p
+                        className="text-gray-500 focus:outline-none focus:ring-0"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onClick={(e) => e.stopPropagation()}
+                        onFocus={() => {
+                          setSelectedPricingField(null);
+                          setSelectedPricingText(textBlock.id);
+                          onSelect?.(component.id);
+                        }}
+                        onInput={(e) =>
+                          handlePricingTextChange(
+                            textBlock.id,
+                            e.currentTarget.textContent ?? "",
+                          )
+                        }
+                        style={{ outline: "none", boxShadow: "none", border: "none" }}
+                      >
+                        {textBlock.text}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

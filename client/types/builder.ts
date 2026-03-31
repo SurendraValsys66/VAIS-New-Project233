@@ -71,6 +71,12 @@ export interface PricingPlan {
   isFeatured?: boolean;
 }
 
+export interface PricingTextBlock {
+  id: string;
+  type: "heading" | "subheading";
+  text: string;
+}
+
 export interface BuilderComponent {
   id: string;
   type: ComponentType;
@@ -170,6 +176,7 @@ export interface BuilderComponent {
   // Pricing section properties
   pricingHeadingText?: string;
   pricingSubheadingText?: string;
+  pricingTextBlocks?: PricingTextBlock[];
   pricingPlans?: PricingPlan[];
 }
 
