@@ -2,6 +2,7 @@ import React from "react";
 import { LandingPageBlock } from "./types";
 import { getBlockStyles } from "./utils";
 import { cn } from "@/lib/utils";
+import { Copy, Plus, Trash2, Check } from "lucide-react";
 export {
   SectionBlockPreview,
   RowBlockPreview,
@@ -389,6 +390,16 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
   const [selectedTierId, setSelectedTierId] = React.useState<string | null>(null);
   const [hoveredElement, setHoveredElement] = React.useState<string | null>(null);
   const [selectedElement, setSelectedElement] = React.useState<string | null>(null);
+  const [copiedElement, setCopiedElement] = React.useState<string | null>(null);
+  const [hoveredTierElement, setHoveredTierElement] = React.useState<string | null>(null);
+  const [selectedTierElement, setSelectedTierElement] = React.useState<string | null>(null);
+  const [editingValue, setEditingValue] = React.useState<string>("");
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+
+  const showCopyFeedback = (elementId: string) => {
+    setCopiedElement(elementId);
+    setTimeout(() => setCopiedElement(null), 2000);
+  };
 
   const handleTierClick = (e: React.MouseEvent, tierId: string) => {
     e.stopPropagation();
@@ -400,10 +411,10 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
     setSelectedElement(selectedElement === elementId ? null : elementId);
   };
 
-  const handleCopyElement = (e: React.MouseEvent, text: string) => {
+  const handleCopyElement = (e: React.MouseEvent, text: string, elementId: string) => {
     e.stopPropagation();
     navigator.clipboard.writeText(text);
-    alert("Text copied to clipboard!");
+    showCopyFeedback(elementId);
   };
 
   const handleDeleteElement = (e: React.MouseEvent, elementId: string) => {
@@ -422,7 +433,7 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
     e.stopPropagation();
     const tierText = `${tier.name} - ${tier.price} - ${tier.features?.join(", ")}`;
     navigator.clipboard.writeText(tierText);
-    alert("Tier copied to clipboard!");
+    showCopyFeedback(`tier-${tier.id}`);
   };
 
   const handleDeleteTier = (e: React.MouseEvent, tierId: string) => {
@@ -473,10 +484,46 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
     onUpdate({ pricingTiers: updatedTiers });
   };
 
-  const handleUpdateTierElement = (tierId: string, field: string, value: any) => {
+  const handleDuplicateElement = (e: React.MouseEvent, elementId: string) => {
+    e.stopPropagation();
+    if (elementId === "heading") {
+      // For heading, duplicate by adding to the existing text
+      onUpdate({ heading: `${props.heading} (Copy)` });
+    } else if (elementId === "subheading") {
+      // For subheading, duplicate by adding to the existing text
+      onUpdate({ subheading: `${props.subheading} (Copy)` });
+    }
+  };
+
+  const startEditing = (elementId: string, value: string) => {
+    setEditingId(elementId);
+    setEditingValue(value);
+  };
+
+  const saveEdit = (tierId: string, field: string) => {
+    if (editingValue.trim()) {
+      const updatedTiers = props.pricingTiers?.map((tier: any) => {
+        if (tier.id === tierId) {
+          return { ...tier, [field]: editingValue };
+        }
+        return tier;
+      }) || [];
+      onUpdate({ pricingTiers: updatedTiers });
+    }
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const handleDuplicateTierElement = (e: React.MouseEvent, tierId: string, field: string, value: string) => {
+    e.stopPropagation();
     const updatedTiers = props.pricingTiers?.map((tier: any) => {
       if (tier.id === tierId) {
-        return { ...tier, [field]: value };
+        return { ...tier, [field]: `${value} (Copy)` };
       }
       return tier;
     }) || [];
@@ -492,9 +539,10 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
       style={blockStyles}
     >
       <div className="px-8 py-8">
+        {/* Heading */}
         <div
           className={cn(
-            "cursor-pointer transition-all rounded p-3 mb-2 relative",
+            "cursor-pointer transition-all rounded p-4 mb-4 relative",
             selectedElement === "heading" && "bg-orange-50",
             hoveredElement === "heading" && selectedElement !== "heading" && "bg-gray-50",
           )}
@@ -515,29 +563,43 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
           <h2 className="text-3xl font-bold text-center" style={{ color: props.textColor || "#1f2937" }}>
             {props.heading}
           </h2>
-          {selectedElement === "heading" && (
-            <div className="mt-3 flex gap-2 pt-3 border-t border-gray-300">
-              <button
-                onClick={(e) => handleCopyElement(e, props.heading)}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
-                title="Copy text"
-              >
-                <span>📋</span> Copy
-              </button>
-              <button
-                onClick={(e) => handleDeleteElement(e, "heading")}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
-                title="Delete this element"
-              >
-                <span>🗑️</span> Delete
-              </button>
-            </div>
-          )}
+          <div className="mt-3 flex gap-2 pt-3 border-t border-gray-300">
+            <button
+              onClick={(e) => handleCopyElement(e, props.heading, "heading")}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              title="Copy heading text"
+            >
+              {copiedElement === "heading" ? (
+                <>
+                  <Check className="w-4 h-4" /> Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" /> Copy
+                </>
+              )}
+            </button>
+            <button
+              onClick={(e) => handleDuplicateElement(e, "heading")}
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              title="Add (duplicate) heading"
+            >
+              <Plus className="w-4 h-4" /> Add
+            </button>
+            <button
+              onClick={(e) => handleDeleteElement(e, "heading")}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              title="Delete heading"
+            >
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          </div>
         </div>
 
+        {/* Subheading */}
         <div
           className={cn(
-            "cursor-pointer transition-all rounded p-3 mb-8 relative",
+            "cursor-pointer transition-all rounded p-4 mb-8 relative",
             selectedElement === "subheading" && "bg-orange-50",
             hoveredElement === "subheading" && selectedElement !== "subheading" && "bg-gray-50",
           )}
@@ -558,25 +620,40 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
           <p className="text-center" style={{ color: props.textColor || "#4b5563" }}>
             {props.subheading}
           </p>
-          {selectedElement === "subheading" && (
-            <div className="mt-3 flex gap-2 pt-3 border-t border-gray-300">
-              <button
-                onClick={(e) => handleCopyElement(e, props.subheading)}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
-                title="Copy text"
-              >
-                <span>📋</span> Copy
-              </button>
-              <button
-                onClick={(e) => handleDeleteElement(e, "subheading")}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
-                title="Delete this element"
-              >
-                <span>🗑️</span> Delete
-              </button>
-            </div>
-          )}
+          <div className="mt-3 flex gap-2 pt-3 border-t border-gray-300">
+            <button
+              onClick={(e) => handleCopyElement(e, props.subheading, "subheading")}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              title="Copy description text"
+            >
+              {copiedElement === "subheading" ? (
+                <>
+                  <Check className="w-4 h-4" /> Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" /> Copy
+                </>
+              )}
+            </button>
+            <button
+              onClick={(e) => handleDuplicateElement(e, "subheading")}
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              title="Add (duplicate) description"
+            >
+              <Plus className="w-4 h-4" /> Add
+            </button>
+            <button
+              onClick={(e) => handleDeleteElement(e, "subheading")}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              title="Delete description"
+            >
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          </div>
         </div>
+
+        {/* Pricing Tiers Grid */}
         <div className="grid grid-cols-3 gap-8">
           {props.pricingTiers?.map((tier: any) => (
             <div
@@ -604,23 +681,90 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
             >
               {/* Tier Name */}
               <div
-                className="mb-2 p-2 rounded cursor-pointer border-2 border-transparent hover:border-orange-300 transition-all"
+                className={cn(
+                  "mb-4 p-2 rounded transition-all cursor-pointer",
+                  selectedTierElement === `${tier.id}-name` && "bg-orange-50",
+                  hoveredTierElement === `${tier.id}-name` && selectedTierElement !== `${tier.id}-name` && "bg-gray-50"
+                )}
+                style={{
+                  border: selectedTierElement === `${tier.id}-name`
+                    ? "2px solid #FF6A00"
+                    : hoveredTierElement === `${tier.id}-name`
+                    ? "2px dashed #FF6A00"
+                    : "2px solid transparent"
+                }}
+                onMouseEnter={() => selectedTierId === tier.id && setHoveredTierElement(`${tier.id}-name`)}
+                onMouseLeave={() => setHoveredTierElement(null)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setSelectedTierId(tier.id);
+                  setSelectedTierElement(`${tier.id}-name`);
                 }}
               >
-                <h3 className="text-lg font-semibold mb-2">{tier.name}</h3>
-                {selectedTierId === tier.id && (
-                  <div className="flex gap-1">
+                {editingId === `${tier.id}-name` ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") saveEdit(tier.id, "name");
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    className="w-full px-2 py-1 border border-blue-500 rounded text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <h3 className="text-lg font-semibold">{tier.name}</h3>
+                )}
+                {selectedTierElement === `${tier.id}-name` && editingId !== `${tier.id}-name` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => startEditing(`${tier.id}-name`, tier.name) || e.stopPropagation()}
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Edit name"
+                    >
+                      ✏️ Edit
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigator.clipboard.writeText(tier.name);
+                        showCopyFeedback(`tier-name-${tier.id}`);
                       }}
-                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1 rounded text-xs transition-colors"
-                      title="Copy"
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Copy tier name"
                     >
-                      📋
+                      <Copy className="w-3 h-3" /> Copy
+                    </button>
+                    <button
+                      onClick={(e) => handleDuplicateTierElement(e, tier.id, "name", tier.name)}
+                      className="flex-1 bg-green-400 hover:bg-green-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Duplicate name"
+                    >
+                      <Plus className="w-3 h-3" /> Add
+                    </button>
+                  </div>
+                )}
+                {editingId === `${tier.id}-name` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveEdit(tier.id, "name");
+                      }}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelEdit();
+                      }}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Cancel
                     </button>
                   </div>
                 )}
@@ -628,23 +772,90 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
 
               {/* Tier Price */}
               <div
-                className="mb-2 p-2 rounded cursor-pointer border-2 border-transparent hover:border-orange-300 transition-all"
+                className={cn(
+                  "mb-4 p-2 rounded transition-all cursor-pointer",
+                  selectedTierElement === `${tier.id}-price` && "bg-orange-50",
+                  hoveredTierElement === `${tier.id}-price` && selectedTierElement !== `${tier.id}-price` && "bg-gray-50"
+                )}
+                style={{
+                  border: selectedTierElement === `${tier.id}-price`
+                    ? "2px solid #FF6A00"
+                    : hoveredTierElement === `${tier.id}-price`
+                    ? "2px dashed #FF6A00"
+                    : "2px solid transparent"
+                }}
+                onMouseEnter={() => selectedTierId === tier.id && setHoveredTierElement(`${tier.id}-price`)}
+                onMouseLeave={() => setHoveredTierElement(null)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setSelectedTierId(tier.id);
+                  setSelectedTierElement(`${tier.id}-price`);
                 }}
               >
-                <div className="text-4xl font-bold mb-2">{tier.price}</div>
-                {selectedTierId === tier.id && (
-                  <div className="flex gap-1">
+                {editingId === `${tier.id}-price` ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") saveEdit(tier.id, "price");
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    className="w-full px-2 py-1 border border-blue-500 rounded text-4xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <div className="text-4xl font-bold">{tier.price}</div>
+                )}
+                {selectedTierElement === `${tier.id}-price` && editingId !== `${tier.id}-price` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => startEditing(`${tier.id}-price`, tier.price) || e.stopPropagation()}
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Edit price"
+                    >
+                      ✏️ Edit
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigator.clipboard.writeText(tier.price);
+                        showCopyFeedback(`tier-price-${tier.id}`);
                       }}
-                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1 rounded text-xs transition-colors"
-                      title="Copy"
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Copy price"
                     >
-                      📋
+                      <Copy className="w-3 h-3" /> Copy
+                    </button>
+                    <button
+                      onClick={(e) => handleDuplicateTierElement(e, tier.id, "price", tier.price)}
+                      className="flex-1 bg-green-400 hover:bg-green-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Duplicate price"
+                    >
+                      <Plus className="w-3 h-3" /> Add
+                    </button>
+                  </div>
+                )}
+                {editingId === `${tier.id}-price` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveEdit(tier.id, "price");
+                      }}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelEdit();
+                      }}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Cancel
                     </button>
                   </div>
                 )}
@@ -652,27 +863,92 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
 
               {/* Tier Description */}
               <div
-                className="mb-6 p-2 rounded cursor-pointer border-2 border-transparent hover:border-orange-300 transition-all"
+                className={cn(
+                  "mb-6 p-2 rounded transition-all cursor-pointer",
+                  selectedTierElement === `${tier.id}-desc` && "bg-orange-50",
+                  hoveredTierElement === `${tier.id}-desc` && selectedTierElement !== `${tier.id}-desc` && "bg-gray-50"
+                )}
+                style={{
+                  border: selectedTierElement === `${tier.id}-desc`
+                    ? "2px solid #FF6A00"
+                    : hoveredTierElement === `${tier.id}-desc`
+                    ? "2px dashed #FF6A00"
+                    : "2px solid transparent"
+                }}
+                onMouseEnter={() => selectedTierId === tier.id && setHoveredTierElement(`${tier.id}-desc`)}
+                onMouseLeave={() => setHoveredTierElement(null)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setSelectedTierId(tier.id);
+                  setSelectedTierElement(`${tier.id}-desc`);
                 }}
               >
-                <p
-                  className={`text-sm ${tier.isHighlighted ? "text-gray-300" : "text-gray-600"}`}
-                >
-                  {tier.description}
-                </p>
-                {selectedTierId === tier.id && (
-                  <div className="flex gap-1 mt-2">
+                {editingId === `${tier.id}-desc` ? (
+                  <textarea
+                    autoFocus
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter" && e.ctrlKey) saveEdit(tier.id, "description");
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    className="w-full px-2 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                  />
+                ) : (
+                  <p className={`text-sm ${tier.isHighlighted ? "text-gray-300" : "text-gray-600"}`}>
+                    {tier.description}
+                  </p>
+                )}
+                {selectedTierElement === `${tier.id}-desc` && editingId !== `${tier.id}-desc` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => startEditing(`${tier.id}-desc`, tier.description) || e.stopPropagation()}
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Edit description"
+                    >
+                      ✏️ Edit
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigator.clipboard.writeText(tier.description);
+                        showCopyFeedback(`tier-desc-${tier.id}`);
                       }}
-                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1 rounded text-xs transition-colors"
-                      title="Copy"
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Copy description"
                     >
-                      📋
+                      <Copy className="w-3 h-3" /> Copy
+                    </button>
+                    <button
+                      onClick={(e) => handleDuplicateTierElement(e, tier.id, "description", tier.description)}
+                      className="flex-1 bg-green-400 hover:bg-green-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Duplicate description"
+                    >
+                      <Plus className="w-3 h-3" /> Add
+                    </button>
+                  </div>
+                )}
+                {editingId === `${tier.id}-desc` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveEdit(tier.id, "description");
+                      }}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelEdit();
+                      }}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Cancel
                     </button>
                   </div>
                 )}
@@ -680,38 +956,95 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
 
               {/* Features List */}
               <ul
-                className={`text-sm mb-8 space-y-2 p-2 rounded border-2 border-transparent hover:border-orange-300 transition-all ${
+                className={`text-sm mb-8 space-y-2 ${
                   tier.isHighlighted ? "text-gray-300" : "text-gray-600"
                 }`}
               >
                 {tier.features?.map((feature: string, i: number) => (
-                  <li key={i} className="flex items-center justify-between group">
-                    <span>• {feature}</span>
-                    {selectedTierId === tier.id && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <li
+                    key={i}
+                    className={cn(
+                      "flex items-center justify-between px-2 py-1 rounded transition-all cursor-pointer",
+                      selectedTierElement === `${tier.id}-feature-${i}` && "bg-orange-50",
+                      hoveredTierElement === `${tier.id}-feature-${i}` && selectedTierElement !== `${tier.id}-feature-${i}` && "bg-gray-100"
+                    )}
+                    style={{
+                      border: selectedTierElement === `${tier.id}-feature-${i}`
+                        ? "2px solid #FF6A00"
+                        : hoveredTierElement === `${tier.id}-feature-${i}`
+                        ? "2px dashed #FF6A00"
+                        : "2px solid transparent"
+                    }}
+                    onMouseEnter={() => selectedTierId === tier.id && setHoveredTierElement(`${tier.id}-feature-${i}`)}
+                    onMouseLeave={() => setHoveredTierElement(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTierId(tier.id);
+                      setSelectedTierElement(`${tier.id}-feature-${i}`);
+                    }}
+                  >
+                    {editingId === `${tier.id}-feature-${i}` ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === "Enter") {
+                            const updatedTiers = props.pricingTiers?.map((t: any) => {
+                              if (t.id === tier.id) {
+                                return {
+                                  ...t,
+                                  features: t.features?.map((f: string, idx: number) => idx === i ? editingValue : f) || [],
+                                };
+                              }
+                              return t;
+                            }) || [];
+                            onUpdate({ pricingTiers: updatedTiers });
+                            setEditingId(null);
+                            setEditingValue("");
+                          }
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        className="flex-1 px-2 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <span>• {feature}</span>
+                    )}
+                    {selectedTierElement === `${tier.id}-feature-${i}` && editingId !== `${tier.id}-feature-${i}` && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => startEditing(`${tier.id}-feature-${i}`, feature) || e.stopPropagation()}
+                          className="bg-blue-400 hover:bg-blue-500 text-white py-1 px-1.5 rounded text-xs transition-colors flex items-center gap-0.5"
+                          title="Edit feature"
+                        >
+                          ✏️
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             navigator.clipboard.writeText(feature);
+                            showCopyFeedback(`feature-${tier.id}-${i}`);
                           }}
-                          className="bg-blue-400 hover:bg-blue-500 text-white py-0.5 px-1.5 rounded text-xs transition-colors"
-                          title="Copy"
+                          className="bg-blue-400 hover:bg-blue-500 text-white py-1 px-1.5 rounded text-xs transition-colors flex items-center gap-1"
+                          title="Copy feature"
                         >
-                          📋
+                          <Copy className="w-3 h-3" />
                         </button>
                         <button
                           onClick={(e) => handleAddFeature(e, tier.id, feature)}
-                          className="bg-green-400 hover:bg-green-500 text-white py-0.5 px-1.5 rounded text-xs transition-colors"
-                          title="Duplicate"
+                          className="bg-green-400 hover:bg-green-500 text-white py-1 px-1.5 rounded text-xs transition-colors flex items-center gap-1"
+                          title="Duplicate feature"
                         >
-                          ➕
+                          <Plus className="w-3 h-3" />
                         </button>
                         <button
                           onClick={(e) => handleDeleteFeature(e, tier.id, i)}
-                          className="bg-red-400 hover:bg-red-500 text-white py-0.5 px-1.5 rounded text-xs transition-colors"
-                          title="Delete"
+                          className="bg-red-400 hover:bg-red-500 text-white py-1 px-1.5 rounded text-xs transition-colors flex items-center gap-1"
+                          title="Delete feature"
                         >
-                          🗑️
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     )}
@@ -721,31 +1054,98 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
 
               {/* Button Text */}
               <div
-                className="p-2 rounded cursor-pointer border-2 border-transparent hover:border-orange-300 transition-all"
+                className={cn(
+                  "p-2 rounded transition-all cursor-pointer",
+                  selectedTierElement === `${tier.id}-btn` && "bg-orange-50",
+                  hoveredTierElement === `${tier.id}-btn` && selectedTierElement !== `${tier.id}-btn` && "bg-gray-50"
+                )}
+                style={{
+                  border: selectedTierElement === `${tier.id}-btn`
+                    ? "2px solid #FF6A00"
+                    : hoveredTierElement === `${tier.id}-btn`
+                    ? "2px dashed #FF6A00"
+                    : "2px solid transparent"
+                }}
+                onMouseEnter={() => selectedTierId === tier.id && setHoveredTierElement(`${tier.id}-btn`)}
+                onMouseLeave={() => setHoveredTierElement(null)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setSelectedTierId(tier.id);
+                  setSelectedTierElement(`${tier.id}-btn`);
                 }}
               >
-                <button
-                  style={{
-                    backgroundColor: tier.buttonColor,
-                    color: tier.buttonTextColor,
-                  }}
-                  className="w-full py-2 rounded font-medium hover:opacity-90 transition-opacity"
-                >
-                  {tier.buttonText}
-                </button>
-                {selectedTierId === tier.id && (
-                  <div className="flex gap-1 mt-2">
+                {editingId === `${tier.id}-btn` ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") saveEdit(tier.id, "buttonText");
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    className="w-full px-2 py-1 border border-blue-500 rounded font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <button
+                    style={{
+                      backgroundColor: tier.buttonColor,
+                      color: tier.buttonTextColor,
+                    }}
+                    className="w-full py-2 rounded font-medium hover:opacity-90 transition-opacity"
+                  >
+                    {tier.buttonText}
+                  </button>
+                )}
+                {selectedTierElement === `${tier.id}-btn` && editingId !== `${tier.id}-btn` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => startEditing(`${tier.id}-btn`, tier.buttonText) || e.stopPropagation()}
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Edit button text"
+                    >
+                      ✏️ Edit
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigator.clipboard.writeText(tier.buttonText);
+                        showCopyFeedback(`btn-${tier.id}`);
                       }}
-                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1 rounded text-xs transition-colors"
-                      title="Copy"
+                      className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Copy button text"
                     >
-                      📋
+                      <Copy className="w-3 h-3" /> Copy
+                    </button>
+                    <button
+                      onClick={(e) => handleDuplicateTierElement(e, tier.id, "buttonText", tier.buttonText)}
+                      className="flex-1 bg-green-400 hover:bg-green-500 text-white py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1"
+                      title="Duplicate button text"
+                    >
+                      <Plus className="w-3 h-3" /> Add
+                    </button>
+                  </div>
+                )}
+                {editingId === `${tier.id}-btn` && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveEdit(tier.id, "buttonText");
+                      }}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelEdit();
+                      }}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-1.5 rounded text-xs transition-colors"
+                    >
+                      Cancel
                     </button>
                   </div>
                 )}
@@ -756,24 +1156,32 @@ export const PricingBlockPreview: React.FC<BlockPreviewProps> = ({
                 <div className="mt-4 flex gap-2 pt-4 border-t border-gray-300">
                   <button
                     onClick={(e) => handleCopyTier(e, tier)}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
                     title="Copy entire tier"
                   >
-                    <span>📋</span> Copy Tier
+                    {copiedElement === `tier-${tier.id}` ? (
+                      <>
+                        <Check className="w-4 h-4" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" /> Copy Tier
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={(e) => handleAddTier(e, tier)}
-                    className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
                     title="Duplicate entire tier"
                   >
-                    <span>➕</span> Add Tier
+                    <Plus className="w-4 h-4" /> Add Tier
                   </button>
                   <button
                     onClick={(e) => handleDeleteTier(e, tier.id)}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium text-sm transition-colors flex items-center justify-center gap-2"
                     title="Delete this tier"
                   >
-                    <span>🗑️</span> Delete
+                    <Trash2 className="w-4 h-4" /> Delete
                   </button>
                 </div>
               )}
